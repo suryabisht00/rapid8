@@ -1,29 +1,29 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { FaEnvelope, FaLock, FaSignInAlt } from 'react-icons/fa';
-import { AnimatePresence, motion } from 'framer-motion';
-import AuthLayout from '@/app/components/AuthLayout';
-import Input from '@/app/components/Input';
-import Button from '@/app/components/Button';
-import Link from 'next/link';
+import { useState } from "react";
+import { FaEnvelope, FaLock, FaSignInAlt } from "react-icons/fa";
+import { AnimatePresence, motion } from "framer-motion";
+import AuthLayout from "@/app/components/ui/AuthLayout";
+import Input from "@/app/components/ui/Input";
+import Button from "@/app/components/ui/Button";
+import Link from "next/link";
 
 export default function SignIn() {
   const [formData, setFormData] = useState({
-    email: '',
-    password: ''
+    email: "",
+    password: "",
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     // Add your API integration here
-    console.log('Sign in:', formData);
+    console.log("Sign in:", formData);
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [e.target.name]: e.target.value,
     });
   };
 
@@ -66,17 +66,13 @@ export default function SignIn() {
             </motion.div>
           </div>
 
-          <Button 
-            type="submit"
-            variant="primary"
-            icon={<FaSignInAlt />}
-          >
+          <Button type="submit" variant="primary" icon={<FaSignInAlt />}>
             Sign In
           </Button>
         </form>
 
         <div className="mt-8 text-center">
-          <Link 
+          <Link
             href="/signup"
             className="text-blue-600 hover:underline text-sm sm:text-base transition-colors hover:text-blue-700"
           >

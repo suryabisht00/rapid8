@@ -1,6 +1,6 @@
-import { motion } from 'framer-motion';
-import { ReactNode } from 'react';
-import { FaHospitalSymbol } from 'react-icons/fa';
+import { motion } from "framer-motion";
+import { ReactNode } from "react";
+import { FaHospitalSymbol } from "react-icons/fa";
 
 interface AuthLayoutProps {
   children: ReactNode;
@@ -11,11 +11,17 @@ export default function AuthLayout({ children, title }: AuthLayoutProps) {
   return (
     <main className="min-h-screen flex items-center justify-center bg-healthcare p-4 sm:p-6 md:p-8 relative">
       <div className="medical-grid"></div>
-      
+
       {/* Animated pulse rings */}
-      <div className="pulse-ring opacity-20 bg-blue-200" style={{ width: '200px', height: '200px', left: '10%', top: '30%' }}></div>
-      <div className="pulse-ring opacity-20 bg-blue-300" style={{ width: '150px', height: '150px', right: '15%', bottom: '20%' }}></div>
-      
+      <div
+        className="pulse-ring opacity-20 bg-blue-200"
+        style={{ width: "200px", height: "200px", left: "10%", top: "30%" }}
+      ></div>
+      <div
+        className="pulse-ring opacity-20 bg-blue-300"
+        style={{ width: "150px", height: "150px", right: "15%", bottom: "20%" }}
+      ></div>
+
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -44,7 +50,7 @@ export default function AuthLayout({ children, title }: AuthLayoutProps) {
           <h2 className="text-2xl sm:text-3xl font-bold text-center mb-6 text-gray-800">
             {title}
           </h2>
-          
+
           {children}
 
           <div className="mt-8 text-center text-sm text-gray-500">
