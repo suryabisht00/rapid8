@@ -1,27 +1,26 @@
-import type { Metadata } from "next";
-import { Inter } from "next/font/google";
-import "./globals.css";
+import './globals.css'
+import type { Metadata } from 'next'
+import { Inter } from 'next/font/google'
+import Navbar from './components/Navbar'
 
-const inter = Inter({
-  subsets: ["latin"],
-  variable: "--font-inter",
-});
+const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: "Healthcare Portal",
-  description: "Secure access for healthcare professionals and patients",
-};
+  title: 'Rapid8 - Emergency Medical Services',
+  description: 'Emergency medical services and hospital management system',
+}
 
 export default function RootLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+}: {
+  children: React.ReactNode
+}) {
   return (
     <html lang="en">
-      <body className={`${inter.variable} font-sans antialiased`}>
+      <body className={inter.className}>
+        <Navbar />
         {children}
       </body>
     </html>
-  );
+  )
 }
