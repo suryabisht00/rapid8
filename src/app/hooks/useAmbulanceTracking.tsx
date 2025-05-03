@@ -29,7 +29,7 @@ export function useAmbulanceTracking(ambulanceId: string | null) {
     // Initial data fetch to get ambulance info
     const fetchInitialData = async () => {
       try {
-        const response = await fetch(`https://rapid8-backend.onrender.com/api/ambulance/${ambulanceId}`);
+        const response = await fetch(`https://rapid8-backend.onrender.com/api/ambulance/68161ba466578384f4b229d1`);
         
         if (!response.ok) {
           throw new Error(`Failed to fetch ambulance data: ${response.status}`);
@@ -68,7 +68,7 @@ export function useAmbulanceTracking(ambulanceId: string | null) {
     const connectWebSocket = () => {
       // For the production app, this would be a real WebSocket endpoint
       // For now, we'll simulate WebSocket behavior
-      const wsUrl = `wss://rapid8-backend.onrender.com/api/ambulance-tracking/${ambulanceId}`;
+      const wsUrl = `wss://rapid8-backend.onrender.com/api/ambulance-tracking/68161ba466578384f4b229d1`;
       
       try {
         // Simulating WebSocket since we don't have a real WebSocket endpoint
@@ -90,7 +90,6 @@ export function useAmbulanceTracking(ambulanceId: string | null) {
             
             setAmbulanceData(prev => {
               if (!prev) return null;
-              
               return {
                 ...prev,
                 location: {
@@ -119,7 +118,17 @@ export function useAmbulanceTracking(ambulanceId: string | null) {
       }
     };
 
-    fetchInitialData().then(connectWebSocket);
+    // Fix: Execute fetchInitialData first, then connectWebSocket
+    const initializeTracking = async () => {
+      try {
+        await fetchInitialData();
+        connectWebSocket();
+      } catch (err) {
+        // Error handling already done in fetchInitialData
+      }
+    };
+
+    initializeTracking();
 
     // Clean up WebSocket connection on unmount
     return () => {

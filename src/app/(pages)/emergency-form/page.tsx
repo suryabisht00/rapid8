@@ -3,7 +3,7 @@
 import { Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useEffect } from "react";
-import { useEmergencyService } from "@/app/hooks/useEmergencyService";
+import { useSOSSubmission } from "@/app/hooks/submitemergenyform";
 
 // Main component that wraps the content in Suspense
 export default function EmergencyForm() {
@@ -36,18 +36,20 @@ function EmergencyFormContent() {
   const [formData, setFormData] = useState({
     name: "",
     mobile: "",
+    condition: "serious", // Added condition field with default value
     photo: null as File | null,
   });
 
   const [isReady, setIsReady] = useState(false);
-  const { sendEmergencyRequest, loading } = useEmergencyService();
+  const { submitSOSRequest, loading, error } = useSOSSubmission();
 
   useEffect(() => {
     if (lat && lng) {
       setIsReady(true);
       setFormData({
-        name: "Emergency User",
-        mobile: "9876543210",
+        name: "",
+        mobile: "",
+        condition: "serious",
         photo: null,
       });
     }
@@ -84,13 +86,17 @@ function EmergencyFormContent() {
 
     const data = new FormData();
     data.append("name", formData.name);
-    data.append("mobile", formData.mobile);
-    data.append("photo", photoToUse || new Blob());
-    data.append("latitude", lat as string);
-    data.append("longitude", lng as string);
+    data.append("phone", formData.mobile); // Changed from "mobile" to "phone" to match API
+    data.append("condition", formData.condition); // Added condition field
+    data.append("location", `${lat},${lng}`); // Changed to combined location string
+    
+    // Append the photo as "image" instead of "photo"
+    if (photoToUse) {
+      data.append("image", photoToUse);
+    }
 
     try {
-      const response = await sendEmergencyRequest(data);
+      const response = await submitSOSRequest(data);
 
       if (response.success) {
         alert("✅ Emergency Request Sent! Ambulance is on the way.");
@@ -126,7 +132,7 @@ function EmergencyFormContent() {
               Emergency Assistance Request
             </h2>
             <p className="mt-2 text-sm text-gray-600">
-              Please confirm your details for emergency assistance
+              Please provide your details for emergency assistance
             </p>
           </div>
 
@@ -167,6 +173,26 @@ function EmergencyFormContent() {
                 onChange={handleChange}
                 className="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-md shadow-sm focus:ring-red-500 focus:border-red-500"
               />
+            </div>
+
+            <div>
+              <label
+                htmlFor="condition"
+                className="block text-sm font-medium text-gray-700"
+              >
+                Emergency Condition
+              </label>
+              <select
+                id="condition"
+                name="condition"
+                value={formData.condition}
+                onChange={(e) => setFormData(prev => ({ ...prev, condition: e.target.value }))}
+                className="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-md shadow-sm focus:ring-red-500 focus:border-red-500"
+              >
+                <option value="serious">Serious</option>
+                <option value="critical">Critical</option>
+                <option value="stable">Stable</option>
+              </select>
             </div>
 
             <div>
