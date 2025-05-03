@@ -1,0 +1,71 @@
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.5s ease-out forwards;
+}
+
+.route-card {
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+  border-radius: 12px;
+  backdrop-filter: blur(8px);
+  background-color: rgba(255, 255, 255, 0.9);
+  transition: all 0.3s ease;
+}
+
+.route-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+}
+
+.map-container {
+  transition: all 0.5s ease;
+}
+
+.travel-mode-btn {
+  transition: all 0.2s ease;
+}
+
+.travel-mode-btn:hover {
+  transform: translateY(-2px);
+}
+
+.travel-mode-btn.active {
+  background-color: #0A2540;
+  color: white;
+}
+
+input[type="text"] {
+  transition: border-color 0.2s ease;
+}
+
+input[type="text"]:focus {
+  border-color: #0A2540;
+  box-shadow: 0 0 0 2px rgba(10, 37, 64, 0.2);
+}
+
+.mapboxgl-ctrl-logo, .mapboxgl-ctrl-attrib {
+  display: none !important;
+}
+
+.info-box {
+  animation: fadeIn 0.5s ease-out forwards;
+  animation-delay: 0.3s;
+  opacity: 0;
+}
+
+.history-item {
+  transition: all 0.2s ease;
+}
+
+.history-item:hover {
+  background-color: #f3f4f6;
+}

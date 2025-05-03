@@ -182,7 +182,7 @@ export default function HospitalDashboard() {
 }
 
 // Component for Stat Cards
-function StatCard({ icon, title, value, trend }) {
+function StatCard({ icon, title, value, trend }: { icon: React.ReactNode; title: string; value: number; trend?: string }) {
   return (
     <div className="bg-white overflow-hidden shadow rounded-lg">
       <div className="px-4 py-5 sm:p-6">
@@ -216,7 +216,7 @@ function StatCard({ icon, title, value, trend }) {
 }
 
 // Component for Resource Charts
-function ResourceChart({ title, used, total, color }) {
+function ResourceChart({ title, used, total, color }: { title: string; used: number; total: number; color: string }) {
   const percentage = Math.round((used / total) * 100);
 
   return (
