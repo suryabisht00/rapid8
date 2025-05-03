@@ -32,33 +32,42 @@ export default function EmergencyForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.photo) {
-      alert("Please upload a photo.");
+
+    if (!formData.photo || !formData.name || !formData.mobile || !lat || !lng) {
+      alert("Please fill all fields and upload a photo.");
       return;
     }
 
-    const data = new FormData();
-    data.append("name", formData.name);
-    data.append("mobile", formData.mobile);
-    data.append("photo", formData.photo);
-    data.append("latitude", lat as string);
-    data.append("longitude", lng as string);
-
     try {
+      const data = new FormData();
+      data.append("name", formData.name);
+      data.append("condition", "serious"); // Default condition
+      data.append("location", lat); // Backend expects single coordinate
+      data.append("phone", formData.mobile);
+      
+      if (formData.photo instanceof File) {
+        data.append("image", formData.photo); // Changed from 'photo' to 'image'
+      }
+
+      console.log('Submitting data:', Object.fromEntries(data));
+
       const res = await fetch("https://rapid8-backend.onrender.com/api/sos", {
         method: "POST",
         body: data,
       });
 
+      const responseData = await res.json();
+      console.log('Server response:', responseData);
+
       if (res.ok) {
         alert("✅ Emergency Request Sent!");
         router.push("/");
       } else {
-        alert("❌ Something went wrong.");
+        alert(`❌ Error: ${responseData.message || 'Something went wrong'}`);
       } 
     } catch (error) {
-      alert("❌ Network error.");
-      console.error(error);
+      console.error('Submission error:', error);
+      alert("❌ Network error. Please try again.");
     }
   };
 
