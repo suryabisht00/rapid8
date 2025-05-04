@@ -52,7 +52,8 @@ export default function Navbar() {
   
   const handleLogout = () => {
     logout();
-    // The router push will now be handled by the logout function in AuthContext
+    // Force a full page refresh after logout
+    window.location.href = "/";
     setIsOpen(false);
   };
 

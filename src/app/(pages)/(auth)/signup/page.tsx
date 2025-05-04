@@ -55,8 +55,8 @@ export default function SignUp() {
       });
       
       if (response.success) {
-        // Redirect to sign in page after successful registration
-        router.push("/signin");
+        // Redirect to sign in page with a full page refresh
+        window.location.href = "/signin";
       } else {
         setFormError(response.message || "Signup failed. Please try again.");
       }

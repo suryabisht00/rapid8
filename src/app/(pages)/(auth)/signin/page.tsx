@@ -36,8 +36,8 @@ export default function SignIn() {
           document.cookie = "rememberMe=true; max-age=604800; path=/";
         }
         
-        // Redirect to home page instead of dashboard
-        router.push("/");
+        // Force a full page reload and redirect to home
+        window.location.href = "/";
       } else {
         setFormError(response.message || "Login failed. Please check your credentials.");
       }

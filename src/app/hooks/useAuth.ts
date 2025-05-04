@@ -58,8 +58,7 @@ export const useAuth = () => {
         localStorage.setItem('userEmail', data.data.email || '');
         localStorage.setItem('userName', data.data.name || '');
         
-        // Force a refresh of the page to update the navbar
-        window.dispatchEvent(new Event('storage')); // This triggers storage event listeners
+        // The page will be fully refreshed from the signin component
       }
       
       return data;

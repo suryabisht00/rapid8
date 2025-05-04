@@ -62,7 +62,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = () => {
     signOut();
     setUser(null);
-    router.push('/'); // Redirect to home page after logout
+    // No need to redirect here as we're handling it in the Navbar component
   };
 
   // Check if user is already logged in on page load
