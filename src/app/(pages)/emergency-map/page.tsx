@@ -6,6 +6,7 @@ import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { Clock, Navigation, Phone, MessageSquare, Wifi, WifiOff, Cable, AlertCircle, Info } from "lucide-react";
 import { useAmbulanceTracking } from "@/app/hooks/useAmbulanceTracking";
+import { useScrollAnimation } from "@/app/hooks/useScrollAnimation";
 
 // Set Mapbox token
 mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN || 
@@ -32,6 +33,7 @@ function LoadingUI() {
 
 function EmergencyMapContent() {
   const mapContainer = useRef<HTMLDivElement>(null);
+  const mapSectionRef = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const routeRef = useRef<mapboxgl.GeoJSONSource | null>(null);
   const ambulanceMarkerRef = useRef<mapboxgl.Marker | null>(null);
@@ -45,20 +47,20 @@ function EmergencyMapContent() {
   const ambulanceId = searchParams.get("ambulanceId");
   const eta = searchParams.get("eta") || "10";
 
-  // Use our WebSocket hook to track ambulance in real-time
-  // Pass user coordinates to get the nearest ambulance
   const { ambulanceData, isLoading, error, reconnect, isConnected } = 
     useAmbulanceTracking(ambulanceId, userLat, userLng);
 
-  // Track remaining time for ETA countdown
   const [remainingTime, setRemainingTime] = useState(parseInt(eta));
 
-  // Initialize map
+  // Use scroll animation hook with corrected types
+  const { hasScrolled } = useScrollAnimation(mapSectionRef, {
+    animateOnScroll: true
+  });
+
   useEffect(() => {
     if (!mapContainer.current || map.current) return;
     
     if (!userLat || !userLng) {
-      // If we're missing coordinates, redirect back to home
       alert("Missing user location data. Redirecting to home page.");
       router.push("/");
       return;
@@ -67,7 +69,6 @@ function EmergencyMapContent() {
     const userLatNum = parseFloat(userLat);
     const userLngNum = parseFloat(userLng);
 
-    // Create map centered on user's location initially
     map.current = new mapboxgl.Map({
       container: mapContainer.current,
       style: "mapbox://styles/mapbox/streets-v11",
@@ -75,16 +76,13 @@ function EmergencyMapContent() {
       zoom: 14
     });
 
-    // Wait for map to load before adding markers and route
     map.current.on("load", () => {
       if (!map.current) return;
       setMapLoaded(true);
       
-      // Add navigation controls
       map.current.addControl(new mapboxgl.NavigationControl(), "top-right");
       
       try {
-        // Add route source
         map.current.addSource("route", {
           type: "geojson",
           data: {
@@ -97,7 +95,6 @@ function EmergencyMapContent() {
           }
         });
   
-        // Add route layer
         map.current.addLayer({
           id: "route",
           type: "line",
@@ -116,7 +113,6 @@ function EmergencyMapContent() {
         console.error("Error adding route source/layer:", err);
       }
 
-      // Create user marker (red pin)
       const userElement = document.createElement("div");
       userElement.className = "user-marker";
       userElement.style.width = "20px";
@@ -132,7 +128,6 @@ function EmergencyMapContent() {
         .addTo(map.current);
     });
 
-    // Cleanup function
     return () => {
       if (map.current) {
         map.current.remove();
@@ -141,17 +136,14 @@ function EmergencyMapContent() {
     };
   }, [userLat, userLng, router]);
 
-  // Update ambulance marker when ambulance data changes (from WebSocket)
   useEffect(() => {
     if (!mapLoaded || !map.current || !ambulanceData) return;
     
     const { lat, lng } = ambulanceData.location;
     
     if (ambulanceMarkerRef.current) {
-      // Update existing marker position
       ambulanceMarkerRef.current.setLngLat([lng, lat]);
     } else {
-      // Create ambulance marker
       const ambulanceElement = document.createElement("div");
       ambulanceElement.className = "ambulance-marker";
       ambulanceElement.style.width = "30px";
@@ -173,7 +165,6 @@ function EmergencyMapContent() {
         .addTo(map.current);
     }
     
-    // Try to update route when ambulance location changes
     try {
       updateRoute();
     } catch (err) {
@@ -182,7 +173,6 @@ function EmergencyMapContent() {
     
   }, [ambulanceData, mapLoaded]);
 
-  // Update the route between user and ambulance
   const updateRoute = async () => {
     if (!map.current || !mapLoaded || !userLat || !userLng || !ambulanceData) return;
     
@@ -191,7 +181,6 @@ function EmergencyMapContent() {
       const userLatNum = parseFloat(userLat);
       const userLngNum = parseFloat(userLng);
       
-      // Fetch route from Mapbox Directions API
       const response = await fetch(
         `https://api.mapbox.com/directions/v5/mapbox/driving/${ambLng},${ambLat};${userLngNum},${userLatNum}?steps=true&geometries=geojson&access_token=${mapboxgl.accessToken}`
       );
@@ -205,11 +194,9 @@ function EmergencyMapContent() {
 
       const route = data.routes[0];
       
-      // Calculate new ETA based on route duration
-      const newEta = Math.ceil(route.duration / 60); // Convert seconds to minutes
+      const newEta = Math.ceil(route.duration / 60);
       setRemainingTime(newEta);
       
-      // Update the route on the map
       const source = map.current?.getSource("route") as mapboxgl.GeoJSONSource;
       if (source) {
         source.setData({
@@ -221,11 +208,9 @@ function EmergencyMapContent() {
           }
         });
 
-        // Store the source for later updates
         routeRef.current = source;
       }
       
-      // Fit the map to show both points
       const bounds = new mapboxgl.LngLatBounds()
         .extend([ambLng, ambLat])
         .extend([userLngNum, userLatNum]);
@@ -240,20 +225,20 @@ function EmergencyMapContent() {
     }
   };
 
-  // ETA countdown timer
   useEffect(() => {
     if (remainingTime <= 0) return;
     
     const timer = setInterval(() => {
       setRemainingTime((prev) => Math.max(0, prev - 1));
-    }, 60000); // Update every minute
+    }, 60000);
     
     return () => clearInterval(timer);
   }, [remainingTime]);
 
   return (
-    <div className="flex flex-col h-screen">
-      <div className="bg-red-600 text-white p-4">
+    <div className="flex flex-col min-h-screen">
+      {/* Header */}
+      <div className="bg-red-600 text-white p-4 sticky top-0 z-30">
         <h1 className="text-lg font-bold flex items-center">
           <span className="animate-pulse mr-2">⚡</span>
           Emergency Response Active
@@ -276,9 +261,13 @@ function EmergencyMapContent() {
         </div>
       </div>
 
-      <div className="flex flex-col md:flex-row h-full">
-        {/* Map container */}
-        <div className="flex-1 relative">
+      {/* Content area - Modified for smooth scrolling */}
+      <div className="flex flex-col md:flex-row flex-1 overflow-auto">
+        {/* Map container - Now with scroll animation */}
+        <div 
+          ref={mapSectionRef}
+          className={`w-full h-[60vh] md:w-3/5 md:h-auto md:min-h-[calc(100vh-64px)] relative transition-all duration-300 ease-in-out scroll-animate ${hasScrolled ? 'transform translate-y-0' : ''}`}
+        >
           {/* Loading overlay */}
           {(isLoading || !ambulanceData) && (
             <div className="absolute inset-0 bg-white bg-opacity-80 flex items-center justify-center z-10">
@@ -309,8 +298,8 @@ function EmergencyMapContent() {
           <div ref={mapContainer} className="absolute inset-0" />
         </div>
 
-        {/* Status panel */}
-        <div className="md:w-80 bg-white p-4 shadow-lg md:h-full overflow-y-auto">
+        {/* Status panel - Independent scrollable area */}
+        <div className="w-full md:w-2/5 bg-white p-4 shadow-lg md:min-h-[calc(100vh-64px)] overflow-y-auto">
           {ambulanceData && (
             <>
               <div className="mb-6">
