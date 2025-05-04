@@ -39,48 +39,48 @@ export default function HeroSection({
   }, [geolocation, router]);
 
   return (
-    <section className="relative min-h-screen flex flex-col items-center justify-center text-center px-4">
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
-        className="mb-12 z-10"
-      >
-        <motion.h1
-          className="text-5xl md:text-7xl font-bold text-white mb-6"
+    <section className="relative min-h-screen flex flex-col items-center justify-center text-center px-4 py-16">
+      <div className="w-full flex flex-col items-center justify-center flex-grow">
+        <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.2 }}
+          transition={{ duration: 0.6 }}
+          className="mb-8 md:mb-10 z-10 w-full max-w-3xl"
         >
-          <span className="block">Emergency</span>
-          <span className="bg-clip-text text-transparent bg-gradient-to-r from-white to-blue-200">
-            Healthcare Portal
-          </span>
-        </motion.h1>
-        <motion.p
-          className="text-xl md:text-2xl text-blue-100 max-w-2xl mx-auto"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.8, delay: 0.4 }}
-        >
-          Immediate assistance when you need it most
-        </motion.p>
-      </motion.div>
+          <motion.h1
+            className="text-4xl md:text-7xl font-bold text-white mb-4 md:mb-6"
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.2 }}
+          >
+            <span className="block">Emergency</span>
+            <span className="bg-clip-text text-transparent bg-gradient-to-r from-white to-blue-200">
+              Healthcare Portal
+            </span>
+          </motion.h1>
+          <motion.p
+            className="text-lg md:text-2xl text-blue-100 max-w-2xl mx-auto"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.8, delay: 0.4 }}
+          >
+            Immediate assistance when you need it most
+          </motion.p>
+        </motion.div>
 
-      {/* SOS Button */}
-      <motion.div
-        className="relative z-10"
-        initial={{ scale: 0.8, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        transition={{ duration: 0.8, delay: 0.6 }}
-      >
-        <div className="glass-card p-10 rounded-2xl">
+        {/* SOS Button - Now better centered */}
+        <motion.div
+          className="relative z-10 my-4 md:my-6"
+          initial={{ scale: 0.8, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ duration: 0.8, delay: 0.6 }}
+        >
           <SosButton onClick={handleSOSClick} />
           <p className="mt-4 text-white font-medium">
             Press for Emergency Assistance
           </p>
-        </div>
-      </motion.div>
+        </motion.div>
+      </div>
 
       {/* Emergency Details Modal */}
       <AnimatePresence>
@@ -140,7 +140,7 @@ export default function HeroSection({
       {/* Scroll Indicator */}
       {scrollIndicatorVisible && (
         <motion.div
-          className="absolute bottom-10 left-1/2 transform -translate-x-1/2 z-10"
+          className="absolute bottom-6 left-1/2 transform -translate-x-1/2 z-10"
           animate={{
             y: [0, 10, 0],
             opacity: [0.4, 1, 0.4],

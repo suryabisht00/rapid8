@@ -7,9 +7,9 @@ interface SosButtonProps {
 
 export default function SosButton({ onClick, size = "lg" }: SosButtonProps) {
   const sizeClasses = {
-    sm: "w-24 h-24 text-2xl",
-    md: "w-32 h-32 text-3xl",
-    lg: "w-40 h-40 text-4xl",
+    sm: "w-20 h-20 text-xl",
+    md: "w-28 h-28 text-2xl",
+    lg: "w-32 h-32 md:w-40 md:h-40 text-3xl md:text-4xl",
   };
 
   return (
