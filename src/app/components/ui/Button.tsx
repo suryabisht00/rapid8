@@ -1,62 +1,46 @@
-import { motion } from "framer-motion";
-import { ReactNode } from "react";
+import React from "react";
 
-interface ButtonProps {
-  children: ReactNode;
-  type?: "submit" | "button";
+export interface ButtonProps {
+  children: React.ReactNode;
+  type?: "button" | "submit" | "reset";
+  variant: "primary" | "secondary" | "outline" | "danger";
+  icon?: React.ReactNode;
   onClick?: () => void;
-  variant?: "primary" | "secondary" | "outline";
   className?: string;
-  icon?: ReactNode;
+  disabled?: boolean; // Add the disabled property
 }
 
-export default function Button({
+const Button: React.FC<ButtonProps> = ({
   children,
   type = "button",
-  onClick,
-  variant = "primary",
-  className = "",
+  variant,
   icon,
-}: ButtonProps) {
-  const baseStyle =
-    "w-full py-3 rounded-lg font-semibold transition-all flex items-center justify-center relative overflow-hidden text-sm sm:text-base";
-
-  const variants = {
-    primary:
-      "bg-blue-600 text-white hover:bg-blue-700 shadow-md hover:shadow-lg",
-    secondary:
-      "bg-gray-100 text-gray-800 hover:bg-gray-200 shadow-sm hover:shadow",
-    outline:
-      "bg-transparent text-blue-600 border-2 border-blue-600 hover:bg-blue-50",
+  onClick,
+  className = "",
+  disabled = false, // Add default value
+}) => {
+  // Base button styles
+  const baseStyles = "flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg font-medium transition-all duration-200";
+  
+  // Variant specific styles
+  const variantStyles = {
+    primary: "bg-blue-600 text-white hover:bg-blue-700 disabled:bg-blue-400",
+    secondary: "bg-gray-200 text-gray-800 hover:bg-gray-300 disabled:bg-gray-100",
+    outline: "border border-gray-300 text-gray-700 hover:bg-gray-100 disabled:text-gray-400",
+    danger: "bg-red-600 text-white hover:bg-red-700 disabled:bg-red-400",
   };
-
+  
   return (
-    <motion.button
-      whileHover={{ scale: 1.02 }}
-      whileTap={{ scale: 0.98 }}
-      className={`${baseStyle} ${variants[variant]} ${className}`}
+    <button
       type={type}
+      className={`${baseStyles} ${variantStyles[variant]} ${className} ${disabled ? 'cursor-not-allowed' : 'cursor-pointer'}`}
       onClick={onClick}
+      disabled={disabled} // Add the disabled attribute
     >
-      {/* Ripple effect */}
-      <span className="absolute inset-0 overflow-hidden rounded-lg">
-        <motion.span
-          className="absolute bg-white w-5 h-5 rounded-full opacity-25"
-          initial={{ scale: 0, x: "-50%", y: "-50%" }}
-          whileTap={{ scale: 8, opacity: 0 }}
-          transition={{ duration: 0.8 }}
-          style={{
-            left: "calc(var(--mouse-x, 0) * 1px)",
-            top: "calc(var(--mouse-y, 0) * 1px)",
-          }}
-        />
-      </span>
-
-      {/* Button content */}
-      <span className="flex items-center justify-center gap-2 z-10">
-        {icon && <span>{icon}</span>}
-        {children}
-      </span>
-    </motion.button>
+      {icon && <span>{icon}</span>}
+      <span>{children}</span>
+    </button>
   );
-}
+};
+
+export default Button;

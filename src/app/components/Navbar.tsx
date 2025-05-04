@@ -1,24 +1,66 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { FaBars, FaTimes, FaHospital, FaUser, FaSignInAlt, FaUserPlus, FaHome } from 'react-icons/fa';
+import { usePathname, useRouter } from 'next/navigation';
+import { FaBars, FaTimes, FaHospital, FaSignInAlt, FaUserPlus, FaHome, FaSignOutAlt } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useAuthContext } from '../context/AuthContext';
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
+  const router = useRouter();
+  const { isAuthenticated, logout } = useAuthContext();
+  const [mounted, setMounted] = useState(false);
+  
+  // Handle hydration mismatch by only rendering authenticated content after mount
+  useEffect(() => {
+    setMounted(true);
+    
+    // Listen for storage events (which we trigger when auth state changes)
+    const handleStorageChange = () => {
+      // This will force a re-render of the component
+      setMounted(false);
+      setTimeout(() => setMounted(true), 0);
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, []);
 
-  const routes = [
+  // Base routes that are always available
+  const publicRoutes = [
     { name: 'Home', path: '/', icon: <FaHome className="mr-2" /> },
+  ];
+
+  // Routes for authenticated users
+  const authRoutes = [
     { name: 'Hospital Dashboard', path: '/hospital/dashboard', icon: <FaHospital className="mr-2" /> },
     { name: 'Emergency Command', path: '/hospital/emrgncyCmdCenter', icon: <FaHospital className="mr-2" /> },
+  ];
+
+  // Routes for non-authenticated users
+  const nonAuthRoutes = [
     { name: 'Sign In', path: '/signin', icon: <FaSignInAlt className="mr-2" /> },
     { name: 'Sign Up', path: '/signup', icon: <FaUserPlus className="mr-2" /> },
   ];
 
   const toggleMenu = () => setIsOpen(!isOpen);
+  
+  const handleLogout = () => {
+    logout();
+    // The router push will now be handled by the logout function in AuthContext
+    setIsOpen(false);
+  };
+
+  // Determine which routes to show based on authentication status
+  const routesToShow = mounted ? [
+    ...publicRoutes,
+    ...(isAuthenticated ? authRoutes : nonAuthRoutes)
+  ] : publicRoutes;
 
   return (
     <nav className="bg-white shadow-md">
@@ -35,7 +77,7 @@ export default function Navbar() {
 
           {/* Desktop menu */}
           <div className="hidden sm:ml-6 sm:flex sm:items-center">
-            {routes.map(route => (
+            {routesToShow.map(route => (
               <Link 
                 key={route.path}
                 href={route.path}
@@ -49,6 +91,17 @@ export default function Navbar() {
                 {route.name}
               </Link>
             ))}
+            
+            {/* Logout button for authenticated users */}
+            {mounted && isAuthenticated && (
+              <button
+                onClick={handleLogout}
+                className="ml-4 px-3 py-2 rounded-md text-sm font-medium flex items-center text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors"
+              >
+                <FaSignOutAlt className="mr-2" />
+                Logout
+              </button>
+            )}
           </div>
 
           {/* Mobile menu button */}
@@ -76,7 +129,7 @@ export default function Navbar() {
             transition={{ duration: 0.2 }}
           >
             <div className="px-2 pt-2 pb-3 space-y-1">
-              {routes.map(route => (
+              {routesToShow.map(route => (
                 <Link 
                   key={route.path}
                   href={route.path}
@@ -91,6 +144,17 @@ export default function Navbar() {
                   {route.name}
                 </Link>
               ))}
+              
+              {/* Logout button for authenticated users (mobile) */}
+              {mounted && isAuthenticated && (
+                <button
+                  onClick={handleLogout}
+                  className="w-full text-left block px-3 py-2 rounded-md text-base font-medium flex items-center text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                >
+                  <FaSignOutAlt className="mr-2" />
+                  Logout
+                </button>
+              )}
             </div>
           </motion.div>
         )}

@@ -1,24 +1,69 @@
 "use client";
 
 import { useState } from "react";
-import { FaEnvelope, FaLock, FaUser, FaUserPlus } from "react-icons/fa";
+import {
+  FaEnvelope,
+  FaLock,
+  FaUser,
+  FaUserPlus,
+  FaPhone,
+} from "react-icons/fa";
 import { AnimatePresence, motion } from "framer-motion";
 import AuthLayout from "@/app/components/ui/AuthLayout";
 import Input from "@/app/components/ui/Input";
 import Button from "@/app/components/ui/Button";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/app/hooks/useAuth";
 
 export default function SignUp() {
+  const router = useRouter();
+  const { signUp, loading, error: authError } = useAuth();
   const [formData, setFormData] = useState({
+    name: "",
     email: "",
     password: "",
-    name: "",
+    phone: "",
+    role: "ambulanceStaff",
   });
+
+  const [formError, setFormError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Add your API integration here
-    console.log("Sign up:", formData);
+
+    // Updated validation to include phone
+    if (
+      !formData.email ||
+      !formData.password ||
+      !formData.name ||
+      !formData.phone
+    ) {
+      setFormError("Please fill all fields");
+      return;
+    }
+
+    setFormError(null);
+    
+    try {
+      const response = await signUp({
+        name: formData.name,
+        email: formData.email,
+        password: formData.password,
+        phone: formData.phone,
+        role: formData.role,
+      });
+      
+      if (response.success) {
+        // Redirect to sign in page after successful registration
+        router.push("/signin");
+      } else {
+        setFormError(response.message || "Signup failed. Please try again.");
+      }
+    } catch (err) {
+      setFormError("An unexpected error occurred. Please try again.");
+      console.error(err);
+    }
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -35,6 +80,16 @@ export default function SignUp() {
         animate={{ opacity: 1 }}
         transition={{ duration: 0.5 }}
       >
+        {(authError || formError) && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="p-3 mb-4 text-sm bg-red-100 border border-red-300 text-red-700 rounded"
+          >
+            {authError || formError}
+          </motion.div>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-5 sm:space-y-6">
           <AnimatePresence mode="wait">
             <Input
@@ -59,6 +114,16 @@ export default function SignUp() {
           />
 
           <Input
+            type="tel"
+            name="phone"
+            placeholder="Phone Number"
+            value={formData.phone}
+            onChange={handleInputChange}
+            required
+            Icon={FaPhone}
+          />
+
+          <Input
             type="password"
             name="password"
             placeholder="Password"
@@ -68,8 +133,41 @@ export default function SignUp() {
             Icon={FaLock}
           />
 
-          <Button type="submit" variant="primary" icon={<FaUserPlus />}>
-            Create Account
+          <div className="space-y-3">
+            <label className="block text-sm font-medium text-gray-700">Role</label>
+            <div className="flex gap-4">
+              <label className="inline-flex items-center">
+                <input
+                  type="radio"
+                  name="role"
+                  value="ambulanceStaff"
+                  checked={formData.role === "ambulanceStaff"}
+                  onChange={handleInputChange}
+                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                />
+                <span className="ml-2 text-sm text-gray-700">Ambulance Staff</span>
+              </label>
+              <label className="inline-flex items-center">
+                <input
+                  type="radio"
+                  name="role"
+                  value="hospitalStaff"
+                  checked={formData.role === "hospitalStaff"}
+                  onChange={handleInputChange}
+                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                />
+                <span className="ml-2 text-sm text-gray-700">Hospital Staff</span>
+              </label>
+            </div>
+          </div>
+
+          <Button 
+            type="submit" 
+            variant="primary" 
+            icon={<FaUserPlus />}
+            disabled={loading}
+          >
+            {loading ? "Creating Account..." : "Create Account"}
           </Button>
         </form>
 
