@@ -20,6 +20,7 @@ export function useAmbulanceTracker(ambulanceId: string) {
         try {
           setIsConnected(true);
           console.log("Connected to WebSocket");
+          // Match the backend event name
           socket.emit("join-tracking", `ambulance-${ambulanceId}`);
         } catch (err) {
           console.warn("Connect handler error:", err);
@@ -37,41 +38,48 @@ export function useAmbulanceTracker(ambulanceId: string) {
 
       if ("geolocation" in navigator) {
         try {
+          // Initial position setup
           navigator.geolocation.getCurrentPosition(
-            (pos) => {
+            async (pos) => {
               const { latitude: lat, longitude: lng } = pos.coords;
-              setPosition({ lat, lng });
-              setLastUpdate(new Date().toLocaleTimeString());
+
+              // Send initial location to backend
+              await updateLocationInBackend(lat, lng);
             },
             (error) => console.warn("Initial position error:", error.message),
-            { timeout: 30000, maximumAge: 60000, enableHighAccuracy: false }
+            { enableHighAccuracy: true, timeout: 30000, maximumAge: 0 }
           );
 
+          // Watch position changes
           watchIdRef.current = navigator.geolocation.watchPosition(
-            (pos) => {
+            async (pos) => {
               try {
                 const { latitude: lat, longitude: lng } = pos.coords;
-                setPosition({ lat, lng });
-                setLastUpdate(new Date().toLocaleTimeString());
 
+                // Update location in backend
+                await updateLocationInBackend(lat, lng);
+
+                // Emit location update through WebSocket with modified room format
                 if (socket.connected) {
-                  socket.emit("update_location", {
-                    ambulanceId,
-                    lat,
-                    lng,
+                  socket.emit("location_update", {
+                    room: `ambulance-${ambulanceId}`,
+                    data: {
+                      location: {
+                        coordinates: [lng, lat],
+                        timestamp: new Date().toISOString(),
+                      },
+                    },
                   });
                 }
               } catch (err) {
                 console.warn("Position update error:", err);
               }
             },
-            (error) => {
-              console.warn("Watch position error:", error.message);
-            },
+            (error) => console.warn("Watch position error:", error.message),
             {
               enableHighAccuracy: true,
               timeout: 30000,
-              maximumAge: 10000,
+              maximumAge: 5000,
             }
           );
         } catch (err) {
@@ -84,6 +92,7 @@ export function useAmbulanceTracker(ambulanceId: string) {
           if (watchIdRef.current) {
             navigator.geolocation.clearWatch(watchIdRef.current);
           }
+          // Match the backend event name
           socket.emit("leave-tracking", `ambulance-${ambulanceId}`);
           socket.disconnect();
         } catch (err) {
@@ -95,6 +104,44 @@ export function useAmbulanceTracker(ambulanceId: string) {
       return () => {};
     }
   }, [ambulanceId]);
+
+  // Helper function to update location in backend
+  const updateLocationInBackend = async (lat: number, lng: number) => {
+    try {
+      const response = await fetch(
+        "https://rapid8-backend.onrender.com/api/ambulance/update-location",
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            id: ambulanceId, // Changed from ambulanceId to id
+            lat: lng, // API expects longitude first
+            lng: lat, // API expects latitude second
+            is_active: true,
+            is_available: true,
+            last_updated_at: new Date().toISOString(),
+          }),
+        }
+      );
+
+      const data = await response.json();
+      console.log("Update response:", data);
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || "Failed to update location");
+      }
+
+      setLastUpdate(new Date().toISOString());
+      setPosition({ lat, lng });
+      setIsConnected(true);
+    } catch (err) {
+      console.error("Error updating location:", err);
+      setIsConnected(false);
+      throw err;
+    }
+  };
 
   return { position, isConnected, lastUpdate };
 }
