@@ -1,9 +1,33 @@
 "use client";
 
+import { Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useEffect } from "react";
+import { useSOSSubmission } from "@/app/hooks/submitemergenyform";
 
+// Main component that wraps the content in Suspense
 export default function EmergencyForm() {
+  return (
+    <Suspense fallback={<LoadingUI />}>
+      <EmergencyFormContent />
+    </Suspense>
+  );
+}
+
+// Loading UI component
+function LoadingUI() {
+  return (
+    <div className="flex flex-col h-screen items-center justify-center">
+      <div className="text-center">
+        <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-red-600 mb-4"></div>
+        <p className="text-gray-700">Loading emergency form...</p>
+      </div>
+    </div>
+  );
+}
+
+// Inner component that contains all the original logic
+function EmergencyFormContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const lat = searchParams.get("lat");
@@ -12,13 +36,23 @@ export default function EmergencyForm() {
   const [formData, setFormData] = useState({
     name: "",
     mobile: "",
+    condition: "serious", // Added condition field with default value
     photo: null as File | null,
   });
 
   const [isReady, setIsReady] = useState(false);
+  const { submitSOSRequest, loading, error } = useSOSSubmission();
 
   useEffect(() => {
-    if (lat && lng) setIsReady(true);
+    if (lat && lng) {
+      setIsReady(true);
+      setFormData({
+        name: "",
+        mobile: "",
+        condition: "serious",
+        photo: null,
+      });
+    }
   }, [lat, lng]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -33,38 +67,45 @@ export default function EmergencyForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.photo || !formData.name || !formData.mobile || !lat || !lng) {
-      alert("Please fill all fields and upload a photo.");
-      return;
+    let photoToUse = formData.photo;
+    if (!photoToUse) {
+      const canvas = document.createElement("canvas");
+      canvas.width = 100;
+      canvas.height = 100;
+      const ctx = canvas.getContext("2d");
+      if (ctx) {
+        ctx.fillStyle = "red";
+        ctx.fillRect(0, 0, 100, 100);
+        canvas.toBlob((blob) => {
+          if (blob) {
+            photoToUse = new File([blob], "emergency.png", { type: "image/png" });
+          }
+        });
+      }
+    }
+
+    const data = new FormData();
+    data.append("name", formData.name);
+    data.append("phone", formData.mobile); // Changed from "mobile" to "phone" to match API
+    data.append("condition", formData.condition); // Added condition field
+    data.append("location", `${lat},${lng}`); // Changed to combined location string
+    
+    // Append the photo as "image" instead of "photo"
+    if (photoToUse) {
+      data.append("image", photoToUse);
     }
 
     try {
-      const data = new FormData();
-      data.append("name", formData.name);
-      data.append("condition", "serious"); // Default condition
-      data.append("location", lat); // Backend expects single coordinate
-      data.append("phone", formData.mobile);
-      
-      if (formData.photo instanceof File) {
-        data.append("image", formData.photo); // Changed from 'photo' to 'image'
+      const response = await submitSOSRequest(data);
+
+      if (response.success) {
+        alert("✅ Emergency Request Sent! Ambulance is on the way.");
+        
+        // Pass ambulanceId to the emergency map page
+        router.push(
+          `/emergency-map?userLat=${lat}&userLng=${lng}&ambulanceId=${response.ambulanceId}&eta=${response.estimatedTime}`
+        );
       }
-
-      console.log('Submitting data:', Object.fromEntries(data));
-
-      const res = await fetch("https://rapid8-backend.onrender.com/api/sos", {
-        method: "POST",
-        body: data,
-      });
-
-      const responseData = await res.json();
-      console.log('Server response:', responseData);
-
-      if (res.ok) {
-        alert("✅ Emergency Request Sent!");
-        router.push("/");
-      } else {
-        alert(`❌ Error: ${responseData.message || 'Something went wrong'}`);
-      } 
     } catch (error) {
       console.error('Submission error:', error);
       alert("❌ Network error. Please try again.");
@@ -91,7 +132,7 @@ export default function EmergencyForm() {
               Emergency Assistance Request
             </h2>
             <p className="mt-2 text-sm text-gray-600">
-              Please fill out the form below to request emergency assistance
+              Please provide your details for emergency assistance
             </p>
           </div>
 
@@ -107,6 +148,7 @@ export default function EmergencyForm() {
                 type="text"
                 id="name"
                 name="name"
+                value={formData.name}
                 placeholder="Enter your full name"
                 required
                 onChange={handleChange}
@@ -125,6 +167,7 @@ export default function EmergencyForm() {
                 type="tel"
                 id="mobile"
                 name="mobile"
+                value={formData.mobile}
                 placeholder="Enter your mobile number"
                 required
                 onChange={handleChange}
@@ -134,10 +177,30 @@ export default function EmergencyForm() {
 
             <div>
               <label
+                htmlFor="condition"
+                className="block text-sm font-medium text-gray-700"
+              >
+                Emergency Condition
+              </label>
+              <select
+                id="condition"
+                name="condition"
+                value={formData.condition}
+                onChange={(e) => setFormData(prev => ({ ...prev, condition: e.target.value }))}
+                className="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-md shadow-sm focus:ring-red-500 focus:border-red-500"
+              >
+                <option value="serious">Serious</option>
+                <option value="critical">Critical</option>
+                <option value="stable">Stable</option>
+              </select>
+            </div>
+
+            <div>
+              <label
                 htmlFor="photo"
                 className="block text-sm font-medium text-gray-700"
               >
-                Upload Photo
+                Upload Photo (Optional)
               </label>
               <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
                 <div className="space-y-1 text-center">
@@ -152,7 +215,6 @@ export default function EmergencyForm() {
                         name="photo"
                         type="file"
                         accept="image/*"
-                        required
                         onChange={handleChange}
                         className="sr-only"
                       />
@@ -171,7 +233,7 @@ export default function EmergencyForm() {
 
             <div className="bg-gray-50 p-4 rounded-lg">
               <h3 className="text-sm font-medium text-gray-700 mb-2">
-                Location Details
+                Your Location
               </h3>
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -188,9 +250,19 @@ export default function EmergencyForm() {
             <div>
               <button
                 type="submit"
-                className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                disabled={loading}
+                className={`w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 ${
+                  loading ? "opacity-70 cursor-not-allowed" : ""
+                }`}
               >
-                Submit Emergency Request
+                {loading ? (
+                  <>
+                    <div className="animate-spin mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
+                    Processing...
+                  </>
+                ) : (
+                  "Submit Emergency Request"
+                )}
               </button>
             </div>
           </form>
