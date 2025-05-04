@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
-import { Clock, Navigation, Phone, MessageSquare, Wifi, WifiOff, Cable, AlertCircle } from "lucide-react";
+import { Clock, Navigation, Phone, MessageSquare, Wifi, WifiOff, Cable, AlertCircle, Info } from "lucide-react";
 import { useAmbulanceTracking } from "@/app/hooks/useAmbulanceTracking";
 
 // Set Mapbox token
@@ -42,11 +42,13 @@ function EmergencyMapContent() {
   const searchParams = useSearchParams();
   const userLat = searchParams.get("userLat");
   const userLng = searchParams.get("userLng");
-  const ambulanceId = searchParams.get("ambulanceId") || "68161ba466578384f4b229d1"; // Default to provided ambulance ID
+  const ambulanceId = searchParams.get("ambulanceId");
   const eta = searchParams.get("eta") || "10";
 
   // Use our WebSocket hook to track ambulance in real-time
-  const { ambulanceData, isLoading, error, reconnect, isConnected } = useAmbulanceTracking(ambulanceId);
+  // Pass user coordinates to get the nearest ambulance
+  const { ambulanceData, isLoading, error, reconnect, isConnected } = 
+    useAmbulanceTracking(ambulanceId, userLat, userLng);
 
   // Track remaining time for ETA countdown
   const [remainingTime, setRemainingTime] = useState(parseInt(eta));
@@ -162,16 +164,21 @@ function EmergencyMapContent() {
         .setLngLat([lng, lat])
         .setPopup(
           new mapboxgl.Popup().setHTML(
-            `<strong>Ambulance</strong>
+            `<strong>Ambulance ${ambulanceData.vehicleNumber || ''}</strong>
              <p>Driver: ${ambulanceData.driverName}</p>
-             <p>Status: ${ambulanceData.status}</p>`
+             <p>Status: ${ambulanceData.status}</p>
+             <p>Type: ${ambulanceData.vehicleType || 'Standard'}</p>`
           )
         )
         .addTo(map.current);
     }
     
-    // Update route when ambulance location changes
-    updateRoute();
+    // Try to update route when ambulance location changes
+    try {
+      updateRoute();
+    } catch (err) {
+      console.error("Error updating route:", err);
+    }
     
   }, [ambulanceData, mapLoaded]);
 
@@ -331,8 +338,29 @@ function EmergencyMapContent() {
               </div>
 
               <div className="mb-6 border border-gray-200 rounded-md p-3">
-                <h3 className="text-md font-medium text-gray-700 mb-2">Ambulance Details</h3>
+                <h3 className="text-md font-medium text-gray-700 mb-2 flex items-center">
+                  <Info size={16} className="mr-1" />
+                  Ambulance Details
+                </h3>
                 <div className="space-y-2 text-sm">
+                  {ambulanceData.vehicleNumber && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Vehicle #:</span>
+                      <span className="font-medium">{ambulanceData.vehicleNumber}</span>
+                    </div>
+                  )}
+                  {ambulanceData.model && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Model:</span>
+                      <span className="font-medium">{ambulanceData.model}</span>
+                    </div>
+                  )}
+                  {ambulanceData.vehicleType && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Type:</span>
+                      <span className="font-medium">{ambulanceData.vehicleType}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between">
                     <span className="text-gray-500">Driver:</span>
                     <span className="font-medium">{ambulanceData.driverName}</span>

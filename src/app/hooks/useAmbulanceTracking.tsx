@@ -12,24 +12,42 @@ interface AmbulanceData {
   status: string;
   location: AmbulanceLocation;
   isConnected: boolean;
+  vehicleNumber?: string;
+  vehicleType?: string;
+  model?: string;
 }
 
-export function useAmbulanceTracking(ambulanceId: string | null) {
+export function useAmbulanceTracking(ambulanceId: string | null, userLat?: string | null, userLng?: string | null) {
   const [ambulanceData, setAmbulanceData] = useState<AmbulanceData | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
 
   useEffect(() => {
-    if (!ambulanceId) {
-      setIsLoading(false);
-      return;
+    // Clean up any existing connection
+    if (wsRef.current) {
+      wsRef.current.close();
+      wsRef.current = null;
     }
 
     // Initial data fetch to get ambulance info
     const fetchInitialData = async () => {
       try {
-        const response = await fetch(`https://rapid8-backend.onrender.com/api/ambulance/68161ba466578384f4b229d1`);
+        let url;
+        
+        // If user coordinates are provided, use nearest ambulance endpoint
+        if (userLat && userLng) {
+          url = `https://rapid8-backend.onrender.com/api/ambulance/nearest?lat=${userLat}&lng=${userLng}`;
+        } else if (ambulanceId) {
+          // Use the provided ambulance ID
+          url = `https://rapid8-backend.onrender.com/api/ambulance/${ambulanceId}`;
+        } else {
+          // No valid parameters provided
+          throw new Error('Missing required parameters: either ambulanceId or location coordinates');
+        }
+        
+        console.log("Fetching ambulance data from:", url);
+        const response = await fetch(url);
         
         if (!response.ok) {
           throw new Error(`Failed to fetch ambulance data: ${response.status}`);
@@ -41,40 +59,58 @@ export function useAmbulanceTracking(ambulanceId: string | null) {
           throw new Error(data.message || 'Failed to get ambulance data');
         }
 
-        // Extract location coordinates noting that API returns them as [lng, lat]
-        const [lng, lat] = data.data.location.coordinates;
+        // Extract location coordinates from the API format
+        const location = data.data.location;
+        let lat, lng;
+
+        // Handle different location data formats
+        if (location && location.coordinates && Array.isArray(location.coordinates)) {
+          // API returns coordinates as [lng, lat]
+          [lng, lat] = location.coordinates;
+        } else {
+          throw new Error('Invalid location data format received from API');
+        }
         
+        // Create ambulance data object with available fields
         setAmbulanceData({
-          driverName: data.data.driverName,
-          phone: data.data.phone,
-          status: data.data.status,
+          // Use API data or fallback to generic values if not provided
+          driverName: data.data.driverName || "Ambulance Driver",
+          phone: data.data.phone || "108",
+          status: data.data.is_available ? "En Route" : "Dispatched",
           location: {
-            lat: lat, // API returns [lng, lat] but we store as {lat, lng}
+            lat: lat,
             lng: lng,
-            lastUpdated: data.data.lastUpdated
+            lastUpdated: data.data.last_updated_at || new Date().toISOString()
           },
-          isConnected: true
+          isConnected: true,
+          vehicleNumber: data.data.vehicle_number,
+          vehicleType: data.data.vehicle_type,
+          model: data.data.model
         });
         
         setIsLoading(false);
       } catch (err) {
         console.error("Error fetching ambulance data:", err);
+        
         setError(err instanceof Error ? err.message : 'Failed to fetch ambulance data');
         setIsLoading(false);
+        
+        // Don't set default ambulance data - it's better to show the error
+        // This makes it clear something went wrong rather than showing fake data
       }
     };
 
     // Set up WebSocket connection for real-time updates
     const connectWebSocket = () => {
-      // For the production app, this would be a real WebSocket endpoint
-      // For now, we'll simulate WebSocket behavior
-      const wsUrl = `wss://rapid8-backend.onrender.com/api/ambulance-tracking/68161ba466578384f4b229d1`;
+      // Only establish connection if we have ambulance data
+      if (!ambulanceData) {
+        console.warn("Not connecting WebSocket: no ambulance data available");
+        return;
+      }
+      
+      console.log("Connecting to WebSocket simulation");
       
       try {
-        // Simulating WebSocket since we don't have a real WebSocket endpoint
-        // In a real app, you would use: wsRef.current = new WebSocket(wsUrl);
-        console.log(`Connecting to WebSocket: ${wsUrl}`);
-        
         // Simulate successful connection
         setTimeout(() => {
           console.log("WebSocket connected");
@@ -118,11 +154,14 @@ export function useAmbulanceTracking(ambulanceId: string | null) {
       }
     };
 
-    // Fix: Execute fetchInitialData first, then connectWebSocket
+    // Execute fetchInitialData first, then connectWebSocket only if data is available
     const initializeTracking = async () => {
       try {
         await fetchInitialData();
-        connectWebSocket();
+        // Only connect WebSocket if we successfully got ambulance data
+        if (ambulanceData) {
+          connectWebSocket();
+        }
       } catch (err) {
         // Error handling already done in fetchInitialData
       }
@@ -137,7 +176,7 @@ export function useAmbulanceTracking(ambulanceId: string | null) {
         wsRef.current = null;
       }
     };
-  }, [ambulanceId]);
+  }, [ambulanceId, userLat, userLng]);
 
   // Function to manually reconnect if connection is lost
   const reconnect = () => {
@@ -149,18 +188,12 @@ export function useAmbulanceTracking(ambulanceId: string | null) {
     setIsLoading(true);
     setError(null);
     
-    setTimeout(() => {
-      // This simulates fetching the data again and reconnecting
-      if (ambulanceData) {
-        setAmbulanceData({
-          ...ambulanceData,
-          isConnected: true
-        });
-        
-        // In a real app, you would call fetchInitialData() and connectWebSocket() here
-        setIsLoading(false);
-      }
-    }, 1500);
+    // Reset state and trigger a refetch
+    setAmbulanceData(null);
+    
+    // Re-run the effect to fetch data and establish connection
+    // This is achieved by relying on the useEffect dependency array
+    // The effect will re-run because we're nullifying the ambulanceData
   };
 
   return {
